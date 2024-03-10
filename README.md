@@ -63,6 +63,8 @@
    git checkout main # 切换到main分支
    git pull origin main # 拉取最新的main分支更新 (可选)
    git merge <new-branch> # 合并<new-branch>到main，将<new-branch>分支的更改合并到main分支
+   git commit # 提交这次合并
+   git push origin main # 将合并后的更改推送到远程次的main分支
    ```
 
    建议以上命令行不要直接复制，而是一行一行执行，这样如果出问题才知道是哪句出问题。merge时如果遇到冲突请自行chatgpt解决。
