@@ -56,6 +56,7 @@
 4. 当你把\<new-branch>功能开发完全，确定不需要修改后，再把它merge到main分支中：
 
    ```bash
+   git branch # 项确定自己在哪个分支！
    git add .
    git commit -m "<new-branch>开发完啦！"
    git push
