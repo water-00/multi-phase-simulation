@@ -65,7 +65,9 @@
    git add .
    git commit -m "module1开发完啦！"
    git push
-   
+   git checkout main # 切换到main分支
+   git pull origin main # 拉取最新的main分支更新 (可选)
+   git merge module1 # 合并module1到main，将module1分支的更改合并到main分支
    ```
 
    
