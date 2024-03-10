@@ -42,9 +42,30 @@
    * module1
    
    # 写代码......有了阶段性成果后可以
+   
    git add . # .表示选择当前文件夹下所有文件，添加它们到待commit列表；.也可以换成具体的文件或文件夹
    git commit -m "我完成了module1的部分，提交一下"
-   
+   git push
    ```
    
+   如果远端仓库还没有module1分支会报错：
+   
+   ```
+   fatal: The current branch module1 has no upstream branch.
+   To push the current branch and set the remote as upstream, use
+   
+       git push --set-upstream origin module1
+   ```
+   
+   执行它给出的这行代码就行了，这会在远端创建一个module1分支。这样我们就push了新写的module1的代码。注意此时全是在module1分支下操作的，还没有对main分支做任何修改！如果此时你``git checkout main`会看到你刚刚写的代码都消失了，这是对的，因为我们就是不往main commit任何未完成的东西。此时再`git checkout module1`即可，东西会回来。
+   
+4. 当你把module1功能开发完全，确定不需要修改后，再把它merge到main分支中：
+
+   ```bash
+   git add .
+   git commit -m "module1开发完啦！"
+   git push
+   
+   ```
+
    
