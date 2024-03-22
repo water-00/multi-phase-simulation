@@ -40,7 +40,7 @@ $$
   - Dirichlet边界，此边界将流体速度指定为一个速度$\boldsymbol v_D$，要么是在入口指定为入口速度，要么是在no-slip边界指定为$\boldsymbol v_D$.
   - Free-slip边界，要求流体速度沿边界法向的投影为0
   - Open边界，不对速度作出限制，自动满足0牵引力条件（这应该是在Du 2020中讲的？），一般是适合建模在自由流体的出口处
-- D是提出了这一在准不可压缩斯托克斯流动模型及装置设计问题中有数值优势的方程，并提出了流体装置的计算设计管线，但它们的方法是被参数空间限制的。
+- Du 2020是提出了这一在准不可压缩斯托克斯流动模型及装置设计问题中有数值优势的方程，并提出了流体装置的计算设计管线，但它们的方法是被参数空间限制的。
 - $\nabla\cdot\boldsymbol v$速度的散度，同流体力学不可压缩方程中的那项。$\nabla\boldsymbol v$代表什么我应该去看看Du 2020
 
 ## 各向异性斯托克斯方程
@@ -63,11 +63,11 @@ $$
 
 - $\boldsymbol K_m = \boldsymbol I, \boldsymbol K_f = \boldsymbol 0$时方程退化为各向同性下的方程
 
-- 首先将流体域$\Omega$改成了axis-aligned，足够大的，包含$\Omega$的box $\mathcal B\subset\R^d(d=2,3)$，两者的不同是，$\Omega$只包含流体域，而$\mathcal B$包含流体域+固体域：
+- 首先将流体域$\Omega$改成了axis-aligned，足够大的，包含$\Omega$的box $\mathcal B\subset\R^d(d=2,3)$，两者的不同是，$\Omega$只包含流体域，而$\mathcal B$包含流体域+固体域（注意下图中的$\Omega$和$\mathcal B$）：
 
   ![image-20240321103243153](figure/image-20240321103243153.png)
 
-- 引入代表material和frictional影响的两个对称半正定矩阵$\boldsymbol K_m,\boldsymbol K_f:\mathcal B\to S^d_+$, （这个式子的意思应该是，$\boldsymbol K_m,\boldsymbol K_f$接收一个$\mathcal B$中的坐标$x$，然后返回该$x$下的材料、摩擦性质，返回的是一个$d\times d$半正定矩阵因此用$S^d_+$表示？）
+- 引入代表material和frictional影响的两个对称半正定矩阵$\boldsymbol K_m,\boldsymbol K_f:\mathcal B\to S^d_+$, （这个式子的意思应该是，$\boldsymbol K_m,\boldsymbol K_f$接收一个$\mathcal B$中的坐标$x$，然后返回该$x$下的材料、摩擦性质，返回的是一个$d\times d$半正定矩阵，因此用$S^d_+$表示）
 
   - 对称：$A_{ij} = A_{ji}$
   - 半正定（Positive Semi-Definite）：对于任意非零向量 $x$，都有$x^TAx \geq 0$，特点：
@@ -78,13 +78,13 @@ $$
 
 - 将$\lambda$换为空间分布的域而非常数，$\lambda:\mathcal B\to\R^+$，接收与$\mathcal B$同维度的$x$返回一个正数
 
-- 引入$\boldsymbol K_m,\boldsymbol K_f, \lambda$使得新材料的模型可以对不同方向的速度作出各向异性的回复？why
+- 引入$\boldsymbol K_m,\boldsymbol K_f, \lambda$使得新材料的模型可以对不同方向的速度作出各向异性的回复，比如通过设置$\boldsymbol K_m$就可以使得与该cell接触的fluid的法向速度变为0
 
 - 边界划分（边界为什么是$\mathcal B$的偏导？partition是“划分”的意思，指的是将边界分割成若干互不重叠的部分）：$\part\mathcal B = \part\mathcal B_D\cup\part\mathcal B_O$
 
   - Dirichllet：用在流体系统的进口（$v_D$被设置为规定值）和固体项的边界（$v_D = 0$）
   - Open：如前，模拟零牵引力，用在自由流体的出口
-  - 现在只有两个并不是取消了solid-fluid边界上no-slip和free-slip条件，而是将其的表示纳入到$\boldsymbol K_m,\boldsymbol K_f, \lambda$的选择中
+  - 现在只有两种边界（与$\part\Omega = \part\Omega_D\cup\part\Omega_F\cup\part\Omega_O$相比少了free-slip边界）并不是取消了solid-fluid边界上no-slip和free-slip条件，而是将其的表示纳入到$\boldsymbol K_m,\boldsymbol K_f, \lambda$的选择中
 
 $\mathcal B$中的每个格子（或体素）有$\boldsymbol K_m,\boldsymbol K_f, \lambda$，精心选择它们就可以表示solid, fluid相和no-slip, free-slip边界。
 
@@ -170,13 +170,13 @@ $$
 
 接下来是公式（4）中每项能量项的离散化，不同项用不同的方式：
 
-- $E_{m,\mu}$是每个cell的*各向异性拉普拉斯项*，如Du 2020中所做的那样，我们用Gaussian-Legendre积分规则来计算这一项，2D下用4个积分点，3D下用8个积分点
+- $E_{m,\mu}$是每个cell的各向异性拉普拉斯项，如Du 2020中所做的那样，我们用Gaussian-Legendre积分规则来计算这一项，2D下用4个积分点，3D下用8个积分点
 
 - $E_{m, \lambda}$是每个cell的divergence项，$\lambda > 0$则说明该cell会保留流体体积。我们用如下的表达式近似它：
   $$
   E^C_{m, \lambda}\approx\lambda_CW_C\left[\frac{1}{W_C}\int_C(\nabla\cdot v)\mathrm d x\right]^2
   $$
-  $W_C$是cell $C$的体积（$h^2$ in 2D, $h^3$ in 3D），这不会保证cell内部每个点都是零散度，但可以保证cell整体的散度（积分后变通量）$\text{Flux(C)} = \int_C(\nabla\cdot v)\mathrm dx$倾向于0，并且积分结果时可以直接用速度表示的，在2D中假设cell的速度为$\boldsymbol v = (u,v)$，则有
+  $W_C$是cell $C$的体积（$h^2$ in 2D, $h^3$ in 3D），这不会保证cell内部每个点都是零散度，但可以保证cell整体的散度（积分后变通量）$\text{Flux(C)} = \int_C(\nabla\cdot v)\mathrm dx$倾向于0，并且积分结果是可以直接用速度表示的，在2D中假设cell的速度为$\boldsymbol v = (u,v)$，则有
   $$
   \text{Flux}(C) = h(\dfrac{u_{10} + u_{11}}{2} + \dfrac{v_{01} + v_{11}}{2} - \dfrac{u_{00} + u_{01}}{2} - \dfrac{v_{00} + v_{10}}{2})
   $$
@@ -193,7 +193,7 @@ $$
 \min\limits_{\boldsymbol v} \boldsymbol v^\top\boldsymbol K(\boldsymbol \theta)\boldsymbol v - \boldsymbol b(\boldsymbol \theta)^\top\boldsymbol v\\
 \text{s. t. }\boldsymbol v_i = (\boldsymbol v_D)_i,\ \forall(i, (\boldsymbol v_D)_i)\in\mathcal D.
 $$
-其中$\boldsymbol v$堆叠了所有速度自由度，$\boldsymbol K, \boldsymbol b$是材料参数的对称正定（SPD）刚性矩阵和向量表示，$\mathcal D$是Dirichlet边界
+其中$\boldsymbol v$堆叠了所有速度自由度，$\boldsymbol K, \boldsymbol b$是所有cell的材料参数的对称正定（SPD）刚性矩阵和向量的堆叠表示，$\mathcal D$是Dirichlet边界
 
 ## Gaussian-Legendre积分法则
 
@@ -350,7 +350,7 @@ $$
   $$
   对于流体域的总体积，就是遍历每一个cell，因为“流体”既要求各向同性$\epsilon$，又要求流体性$\rho$，所以可以这么算，乘以$\epsilon_c$还有一个好处，对于fluid旁边的solid cell，或许也会有$\rho_c$，但会由于$\epsilon_c=0$而不加入这一部分solid的体积；对于流体域 + free-slip fluid-solid边界的总体积，不需要排除solid体积，故不用乘以$\epsilon$，我想$V_{\text{iso-fluid}}$和$V_{\text{all-fluid}}$想表达的体积大概如下图：
 
-  <img src="figure/image-20240323002350644.png" alt="image-20240323002350644" style="zoom: 25%;" />
+  <img src="figure/image-20240323002350644.png" alt="image-20240323002350644"/>
 
   后者就是前者的体积再加上它的边界。$V_\max$和$V_b$就是认为设置的两个参数，代表流体域体积的阈值和各向异性cell (也就是free-slip boundaries)的阈值。
 
@@ -364,7 +364,7 @@ $$
 $$
 也就是说，cell c被solid and fluid包围时（此时$\rho^{local}_\max - \rho^{local}_\min$很大），cell c就只能是各向异性的了（$\epsilon_c$的上限很小）。
 
-section 6.3 讲了将$k_{f_\min},k_{f_\max},\lambda_\max,\lambda_\min$, block size, $q$（公式12）, 插值函数的选择，感觉没啥重要的
+section 6.3 讲了将$k_{f_\min},k_{f_\max},\lambda_\max,\lambda_\min$, block size, $q$（公式12中的）, 插值函数的选择，感觉没啥重要的
 
 ## Results
 
