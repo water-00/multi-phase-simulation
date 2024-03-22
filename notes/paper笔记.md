@@ -269,7 +269,7 @@ $$
 
 Karush-Kuhn-Tucker (KKT) 条件是解决约束优化问题的一组必要条件。这些条件在某些假设下也是充分条件。具体来说，对于一个优化问题，我们通常有一个目标函数 $f(x)$ 需要最小化（或最大化），同时受到一组不等式约束 $g_i(x) \leq 0$ 和等式约束 $h_j(x) = 0$ 的限制。KKT 条件为寻找这类问题的解提供了一种方法。 优化问题可以表述为： 
 $$
- \begin{align*} & \text{最小化} \quad f(x) \\ & \text{受到约束} \\ & \quad g_i(x) \leq 0, \quad i = 1, \ldots, m \\ & \quad h_j(x) = 0, \quad j = 1, \ldots, l \end{align*} 
+\begin{align*} & \text{最小化} \quad f(x) \\ & \text{受到约束} \\ & \quad g_i(x) \leq 0, \quad i = 1, \ldots, m \\ & \quad h_j(x) = 0, \quad j = 1, \ldots, l \end{align*}
 $$
 KKT 条件包括以下几个部分： 
 
@@ -311,7 +311,7 @@ KKT 条件包括以下几个部分：
 
 ## Optimization
 
-现在，可以正式表示问题的形式，在给定inlet与outlet的速度参数的情况下，我们需要通过解决以下最优化问题来设计一个流体模型：
+现在，可以正式表示问题的形式，我们需要通过解决以下最优化问题来得到一个在给定inlet与outlet的速度参数的条件下最优的流体模型：
 $$
 \begin{align}
 \min\limits_\theta\ \;&L_f(v) + w_cL_c(\boldsymbol \theta) + w_dL_d(\boldsymbol \theta) + w_aL_a(\boldsymbol \theta),\\
@@ -322,10 +322,50 @@ $$
 \end{align}
 $$
 
-- $L_f$表示functional loss，一般取模拟得到的outlet flow与期望的outlet flow profile的$L_2$范数
+- $L_f$表示functional loss，一般取模拟得到的outlet flow与期望的outlet flow profile的（速度的？）$L_2$范数
 
-- $L_c$：the compliance regularizer（柔顺度正则化项？反正是某种欧拉视角下的流体拓扑模型最优化方法，详细见[Borrvall and Petersson 2003]），计算由于强制outlet flow profile与目标相同而积累的弹性能量，我们为了使模拟的outlet flow profile到达目标outlet flow profile，会在出口处加入额外的Dirichlet限制，如果$L_c$越小说明我们需要额外加的Dirichlet条件越小，那么就说明模拟出的outlet flow profile与目标的越接近：
+- $L_c$：the compliance regularizer（柔顺度正则化项？反正是某种欧拉视角下的解决流体拓扑模型最优化问题的方法，详细见[Borrvall and Petersson 2003]），计算由于强制outlet flow profile与目标相同（通过引入额外的Dirichlet边界）而积累的弹性能量。我们为了使模拟的outlet flow profile到达目标outlet flow profile，会在出口处加入额外的Dirichlet限制，这会引入弹性能量。如果$L_c$越小说明我们需要额外加的Dirichlet条件越小，那么就说明模拟出的outlet flow profile与目标要求的越接近：
   $$
-  
+  L_c(\boldsymbol \theta) := v_c^\top\boldsymbol K(\boldsymbol \theta)v_c - \boldsymbol b(\boldsymbol \theta)^\top v_c,\\
+  v_c = F(\boldsymbol \theta;\mathcal D\cup\mathcal D_O)
   $$
-  
+  其中$\mathcal D_O$就是为了是outlet flow profile达到目标而新增的Dirichlet边界
+
+- $L_d$：the directional regularizer，方向性正则化项，它通过比较每个单元的各向异性方向与其小邻域的平均方向之间的余弦相似度，鼓励流体单元之间平滑过渡。定义阈值$\epsilon_0,\rho_0$（各向同性与流体性），如果cell $\epsilon < \epsilon_0 \ \text{and}\ \rho > \rho_0$，则认为cell是各向异性的。记$\mathcal A$为各向异性cell的集合：
+  $$
+  L_d:=\sum\limits_{c\in\mathcal A}1 - \psi_{\text{cos}}(\boldsymbol \alpha_c,\boldsymbol \alpha_{\text{nbr}})
+  $$
+  其中$\boldsymbol \alpha_c$是cell c的各向异性方向单位向量，$\boldsymbol \alpha_{\text{nbr}}$是它的邻居（3\*3\*3）的各向异性的平均方向，$\psi_{\text{cos}}$计算余弦相似度。最小化$L_d$鼓励free-slip边界流体方向的平滑性。
+
+- $L_a$：the anisotropic regularizer，目的是减小solid-fluid边界处的各向同性（都是solid-fluid边界了那当然应该是各向异性的）：
+  $$
+  L_a(\epsilon) :=\sum_c\epsilon_c\rho_c(\rho_\max^{local} - \rho^{local}_\min)
+  $$
+  求和对模型内每个cell c进行。$\rho_\max^{local}, \rho^{local}_\min$是cell c周围3\*3\*3的邻居的最大和最小fluidity，如果cell c周围是solid-fluid边界，则会有较大的$\rho_\max^{local} - \rho^{local}_\min$，此时$\epsilon_c$就应该变得较小，表示此处是“各向异性”。
+
+- 体积限制，$V_{\text{iso-fluid}}$表示流体域的总单位体积，也即各向同性（isotropy）流体的总单位体积，$V_{\text{all-fluid}}$表示流体域 + free-slip fluid-solid边界的总单位体积，它们的计算方式如下：
+  $$
+  V_{\text{iso-fluid}} :=\sum_c\epsilon_c\rho_c,\\
+  V_{\text{all-fluid}} :=\sum_c\rho_c
+  $$
+  对于流体域的总体积，就是遍历每一个cell，因为“流体”既要求各向同性$\epsilon$，又要求流体性$\rho$，所以可以这么算，乘以$\epsilon_c$还有一个好处，对于fluid旁边的solid cell，或许也会有$\rho_c$，但会由于$\epsilon_c=0$而不加入这一部分solid的体积；对于流体域 + free-slip fluid-solid边界的总体积，不需要排除solid体积，故不用乘以$\epsilon$，我想$V_{\text{iso-fluid}}$和$V_{\text{all-fluid}}$想表达的体积大概如下图：
+
+  <img src="figure/image-20240323002350644.png" alt="image-20240323002350644" style="zoom: 25%;" />
+
+  后者就是前者的体积再加上它的边界。$V_\max$和$V_b$就是认为设置的两个参数，代表流体域体积的阈值和各向异性cell (也就是free-slip boundaries)的阈值。
+
+这些正则化项是为了outlet flow在空间上分布平滑并且模型有清晰地solid-fluid边界。
+
+## Numerical Optimizer
+
+由于论文考虑了各向异性材料，引入各向异性参数，因此这个问题的数值优化问题比各向同性拓扑优化问题的参数空间更大。论文用method of moving asymptotes (MMA) [Svanberg 1987]优化算法，由于这个算法需要$\boldsymbol\theta$的梯度，所以作者扩展了Du et al. [2020]的可微分模拟器，可能这种可微分模拟器比在backpropagation中计算gradient更快？感觉作者是这个意思。另外作者引入了自适应的$\epsilon_c$上限：
+$$
+(\epsilon_c)_\max:=1 - (\rho^{local}_\max - \rho^{local}_\min)
+$$
+也就是说，cell c被solid and fluid包围时（此时$\rho^{local}_\max - \rho^{local}_\min$很大），cell c就只能是各向异性的了（$\epsilon_c$的上限很小）。
+
+section 6.3 讲了将$k_{f_\min},k_{f_\max},\lambda_\max,\lambda_\min$, block size, $q$（公式12）, 插值函数的选择，感觉没啥重要的
+
+## Results
+
+与之前两个state-of-the-art的baseline相比，并进行消融实验。
