@@ -369,3 +369,54 @@ section 6.3 讲了将$k_{f_\min},k_{f_\max},\lambda_\max,\lambda_\min$, block si
 ## Results
 
 与之前两个state-of-the-art的baseline相比，并进行消融实验。
+
+Fluid Twister example: $100\times100\times100$ grids, all other optimization examples: $80\times80\times80$ grids
+
+初始化：$\epsilon =1,\rho = V_\max$，即全部cell初始化为各向同性流体，跑300 iterations
+
+模型设置：
+
+- 放大器（Amplifier）与混合器（mixer）：resolution都是$80\times80\times80$。前者在圆形inlet接收速度为$(v_{in},0,0)$的流体，要求在outlet输出速度为$(\dfrac{5}{3}v_{in},0,0)$；后者从两个inlet接收速度为$(v,0,0)$和$(2v, 0, 0)$的流体，要求在两个outlet的输出速度为$(1.5v,0,0)$和$(0,1.5v,0)$. 前者的volume fraction limit是0.3后者是0.4（这个限制的意思应该是fluid phase在整个模型中所占的最大比例吧）
+
+  ![image-20240323141847549](figure/image-20240323141847549.png)
+
+- Tree Diffuser：要求从一个圆形inlet进入，分出16个小的方形outlet，中间还有一个障碍，被设定为速度为0的Ditichlet边界，模型就会在优化过程中逐渐生长出这16个outlet：
+
+  ![image-20240323143431118](figure/image-20240323143431118.png)
+
+- Fluid Twister：从一个圆形inlet输入速度$(v_{in},0,0)$，要求在oulet产生swirl flow（湍流）：
+
+  ![image-20240323143938372](figure/image-20240323143938372.png)
+
+  为了产生湍流优化器会在outlet生成一种类似螺旋桨的结构（图一的右上角，可以看到outlet的这种结构）
+
+- Fluid Circuit：立方体有两个面上分布着多个inlet（有三种inlet速度，我感觉这两个面是右面前面？），另外四个面上分布着多个outlet。模型就会通过优化自动连接最近的inlet与outlet形成fluid通路：
+
+  ![image-20240323145207484](figure/image-20240323145207484.png)
+
+  从左下那幅图看我感觉右面和前面是inlet，前面有些fluid从下面的outlet出
+
+模型总结：
+
+![image-20240323152120718](figure/image-20240323152120718.png)
+
+## 可改进点
+
+- 这一系列工作用的都只是斯托克斯流，忽略了时间依赖的平动项的影响，因此下一步开发重点时引入动态流体模型
+- solid只是刚体，下一步是引入不可压缩流与柔顺体（compliant solid phase）的交互
+- 现在模型的分辨率低，在离散化后的代数问题上使用的是直接求解器（direct solver），如果引入multi-resolution (e.g. multigrid, or multigrid-preconditioned) solvers 能提高性能，但也会引入新的问题。这一段剩下的内容写的好专业看不懂，就讲当前的Stokes流求解器在细节上的各种问题
+
+## Future reading
+
+Du et al., [2020](https://ar5iv.labs.arxiv.org/html/2209.10736#bib.bib15)，开源，伟大！
+
+Borrvall and Petersson ([2003](https://ar5iv.labs.arxiv.org/html/2209.10736#bib.bib9)) ，感觉这篇文章就是提出了一种各向同性下的生成模型的方法，而各向同性方法在流体体积分数较小的情况下就会模糊流体与固体的边界，使得流体在固体边界处仍然有速度（见论文Figure 8.的文字说明）。
+
+Alappat et al., [2020](https://ar5iv.labs.arxiv.org/html/2209.10736#bib.bib3)，提出PARDISO的解方程方法
+
+Svanberg, [1987](https://ar5iv.labs.arxiv.org/html/2209.10736#bib.bib44)，optimizer用的它提出的the method of moving asymptotes (MMA)算法
+
+
+
+
+
