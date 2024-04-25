@@ -1,0 +1,3 @@
+[submodule "diff_stokes_flow"]
+	path = diff_stokes_flow
+	url = https://github.com/mit-gfx/diff_stokes_flow
